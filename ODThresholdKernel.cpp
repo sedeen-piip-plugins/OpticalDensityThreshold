@@ -101,18 +101,6 @@ RawImage ODThresholdKernel::doProcessData(const RawImage &source)
     //Properties of the output image
     int numOutputChannels = static_cast<int>(channels(*buffer));
     int outputScaleMax = sedeen::maxChannelValue<int>(doGetColorSpace());
-    //What channel of each source pixel should be used for the output pixels?
-    //If source is Grayscale, use channel 0 for all. If source is GBR, reverse order
-    std::vector<int> translateSourceToOutputChannels;
-    if ((sourceColorModel == ColorModel::Grayscale) || (numSourceChannels == 1)) {
-        translateSourceToOutputChannels = { 0,0,0 };
-    }
-    else if (sourceColorModel == ColorModel::BGR) {
-        translateSourceToOutputChannels = { 2,1,0 };
-    }
-    else {
-        translateSourceToOutputChannels = { 0,1,2 };
-    }
 
     //Perform faster OD conversions using a lookup table
     std::shared_ptr<ODConversion> converter = std::make_shared<ODConversion>();
@@ -121,128 +109,63 @@ RawImage ODThresholdKernel::doProcessData(const RawImage &source)
     double weightSum = std::accumulate(m_weightVals.begin(), m_weightVals.end(), 0.0);
     double weightDenominator = (weightSum == 0.0) ? 1.0 : weightSum;
 
+    //Loop through all pixels in the source
+    for (int px = 0; px < numPixels; px++) {
+        //Sets of indices corresponding to the elements of a pixel in the source and output
+        std::vector<int> sourceIndices, outputIndices, srcToOutIndex;
+        //If source is Grayscale, use source channel 0 for all.
+        if ((sourceColorModel == ColorModel::Grayscale) || (numSourceChannels == 1)) {
+            srcToOutIndex = { 0,0,0 };
+        }
+        else {
+            srcToOutIndex = { 0,1,2 };
+        }
+        int srcToOutSize = static_cast<int>(srcToOutIndex.size());
 
-
-    //Loop over positions in the source image
-    int y = 0, x = 0;
-    for (int j = 0; j < imageSize.width()*imageSize.height(); j++) {
-        x = j % imageSize.width();
-        y = j / imageSize.width();
+        //Loop through channels, get indices based on PixelOrder
+        if (pixelOrder == PixelOrder::Interleaved) {
+            for (int ch = 0; ch < srcToOutSize; ch++) {
+                //RGB RGB RGB ... (if numChannels=3)
+                //index.push_back(pixel*numChannels + channel);
+                sourceIndices.push_back(px*numSourceChannels + srcToOutIndex.at(ch));
+                outputIndices.push_back(px*numOutputChannels + ch);
+            }
+            outputIndices.push_back(px*numOutputChannels + srcToOutSize);
+        }
+        else if (pixelOrder == PixelOrder::Planar) {
+            for (int ch = 0; ch < srcToOutSize; ch++) {
+                //RRR... GGG... BBB...
+                //index.push_back(channel*numPixels + pixel);
+                sourceIndices.push_back(srcToOutIndex.at(ch)*numPixels + px);
+                outputIndices.push_back(ch*numPixels + px);
+            }
+            outputIndices.push_back(srcToOutSize*numPixels + px);
+        }
+        else {
+            //Invalid value of pixelOrder
+            assert(false && "Invalid PixelOrder defined");
+        }
 
         //Compute the value to compare to the threshold
         double w_odRunningTotal(0.0), w_odVal(0.0);
-        int weightValsSize = 3;
-        //If the source ColorModel is Grayscale, there is only one channel to consider
-        if ((sourceColorModel == ColorModel::Grayscale) || (numSourceChannels == 1)) {
-
+        //Loop over the number of channels that should contribute to the comparison value
+        for (int ch = 0; ch < sourceIndices.size(); ch++) {
+            //Get the channel in the source image that should be accessed
+            w_odRunningTotal += m_weightVals.at(ch) 
+                * converter->LookupRGBtoOD(source.at(sourceIndices.at(ch)).as<int>());
         }
-        else {
-
-        }
-
-        pick up here!!!
-
         w_odVal = w_odRunningTotal / weightDenominator;
 
-
-        //Loop over the number of channels that should contribute to the comparison value
-        for (int ch = 0; ch < 3; ch++) {
-            //Get the actual channel in the source image that should be accessed
-            int sourceChannelNum = translateSourceToOutputChannels.at(ch);
-            if (sourceChannelNum >= numSourceChannels) {
-                assert(false && "Out of range index value");
+        //Check w_odVal against the m_odThreshVal, assign 
+        if ( ((m_behavior == RETAIN_LOWER_OD)  && (w_odVal <= m_odThreshVal))
+          || ((m_behavior == RETAIN_HIGHER_OD) && (w_odVal >= m_odThreshVal)) ) {
+            for (int si = 0; si < sourceIndices.size(); si++) {
+                buffer->setValue(outputIndices.at(si), source.at(sourceIndices.at(si)));
             }
-            w_odRunningTotal += m_weightVals.at(ch)
-                * converter->LookupRGBtoOD(static_cast<int>((source[nextIndex]).as<s32>()));
-
-
-
-
-                //    int weightValsSize = static_cast<int>(m_weightVals.size());
-    //    int endNum = (numChannels < weightValsSize) ? numChannels : weightValsSize;
-    //    for (int i = 0; i < endNum; i++) {
-    //        int nextIndex = indices.at(i);
-    //        if (nextIndex >= numElements) {
-    //            assert(false && "Out of range index value");
-    //        }
-    //        w_odRunningTotal += m_weightVals.at(i)
-    //            * converter->LookupRGBtoOD(static_cast<int>((source[nextIndex]).as<s32>()));
-
-
         }
-
-
-
-
-
-    //    for (int comp = 0; comp < numChannels; comp++) {
-    //        buffer->setValue(x, y, comp, source.at(x, y, comp));
-    //    }
-
-
-
-
         //Set the last element of each output pixel
-        buffer->setValue(x, y, 3, outputScaleMax);
-    }//end loop over all pixels
-
-
-
-
-    ////Loop through all pixels in the source
-    //for (int px = 0; px < numPixels; px++) {
-    //    //Create a set of indices corresponding to the elements of a pixel, however many there are
-    //    std::vector<int> indices;
-    //    for (int ch = 0; ch < 3; ch++) {
-    //        if (pixelOrder == PixelOrder::Interleaved) {
-    //            //RGB RGB RGB ... (if numChannels=3)
-    //            indices.push_back(px*numChannels + ch);
-    //        }
-    //        else if (pixelOrder == PixelOrder::Planar) {
-    //            //RRR... GGG... BBB...
-    //            indices.push_back(ch*numPixels + px);
-    //        }
-    //        else {
-    //            //Invalid value of pixelOrder
-    //            assert(false && "Invalid PixelOrder defined");
-    //        }
-    //    }
-    //    double w_odRunningTotal(0.0), w_odVal(0.0);
-    //    int weightValsSize = static_cast<int>(m_weightVals.size());
-    //    int endNum = (numChannels < weightValsSize) ? numChannels : weightValsSize;
-    //    for (int i = 0; i < endNum; i++) {
-    //        int nextIndex = indices.at(i);
-    //        if (nextIndex >= numElements) {
-    //            assert(false && "Out of range index value");
-    //        }
-    //        w_odRunningTotal += m_weightVals.at(i)
-    //            * converter->LookupRGBtoOD(static_cast<int>((source[nextIndex]).as<s32>()));
-    //    }
-    //    w_odVal = w_odRunningTotal / weightDenominator;
-    //    
-    //    switch (m_behavior) {
-    //    case RETAIN_LOWER_OD:
-    //        if (w_odVal <= m_odThreshVal) {
-    //            for (auto ni = indices.begin(); ni != indices.end(); ++ni) {
-    //                buffer->setValue(*ni, source[*ni]);
-    //            }
-    //        }
-    //        break;
-    //    case RETAIN_HIGHER_OD:
-    //        if (w_odVal >= m_odThreshVal) {
-    //            for (auto ni = indices.begin(); ni != indices.end(); ++ni) {
-    //                buffer->setValue(*ni, source[*ni]);
-    //            }
-    //        }
-    //        break;
-    //    default:
-    //        assert(false && "Invalid Behavior defined");
-    //    }
-    //}//end for px
-
-
-
-
+        buffer->setValue(outputIndices.back(), outputScaleMax);
+    }//end for px
 
     return *buffer;
 }//end doProcessData

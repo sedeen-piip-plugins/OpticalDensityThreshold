@@ -73,8 +73,6 @@ OpticalDensityThreshold::OpticalDensityThreshold()
 OpticalDensityThreshold::~OpticalDensityThreshold() {
 }
 
-
-
 void OpticalDensityThreshold::init(const image::ImageHandle& image) {
     if (isNull(image)) return;
     // bind algorithm members to UI and initialize their properties
@@ -83,7 +81,6 @@ void OpticalDensityThreshold::init(const image::ImageHandle& image) {
     m_displayArea = createDisplayAreaParameter(*this);
 
     //Assemble the user interface
-
     m_thresholdType = createOptionParameter(*this, "Threshold type",
         "Choose how to calculate the integrated optical density: average, or use uneven weights for the RGB pixel components",
         0, m_thresholdTypeOptions, false);
@@ -129,7 +126,6 @@ void OpticalDensityThreshold::init(const image::ImageHandle& image) {
         "Choose a Region of Interest on which to apply the stain separation algorithm. Choosing no ROI will apply the stain separation to the whole slide image.",
         true); //optional. None means apply to whole slide
 
-
     // Bind result
     m_outputText = createTextResult(*this, "Text Result");
     m_result = createImageResult(*this, " StainAnalysisResult");
@@ -150,8 +146,6 @@ void OpticalDensityThreshold::run() {
             //auto report = generateCompleteReport();
             //m_outputText.sendText(report);
 
-
-
             // Get image from the output factory
             auto compositor = std::make_unique<image::tile::Compositor>(m_ODThreshold_factory);
 
@@ -169,10 +163,6 @@ void OpticalDensityThreshold::run() {
                 Rect rect = containingRect(roi->graphic());
                 output_image = compositor->getImage(rect, region.output_size);
             }
-
-
-
-
         }
     }//if display or pipeline changed
 
@@ -181,8 +171,6 @@ void OpticalDensityThreshold::run() {
         m_ODThreshold_factory.reset();
     }
 }//end run
-
-
 
 bool OpticalDensityThreshold::buildPipeline() {
     using namespace image::tile;
