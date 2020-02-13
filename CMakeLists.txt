@@ -1,0 +1,73 @@
+PROJECT( OpticalDensityThreshold )
+CMAKE_MINIMUM_REQUIRED( VERSION 3.13 )
+# Enable C++17 features
+SET(CMAKE_CXX_STANDARD 17)
+#INCLUDE(FetchContent)
+
+#Note which version of Sedeen Viewer this plugin was last compiled and tested with
+SET(SEDEENSDK_VERSION "5.4.4.20191024" CACHE STRING "Last version of Sedeen Viewer the plugin was compiled and tested with")
+
+# Define project description variables
+SET( DISPLAY_NAME_TEXT "Optical Density Threshold" CACHE STRING "Name of the plugin as it should be displayed in Sedeen Viewer")
+SET( SUPPORT_URL_TEXT "http://pathcore.com/support/plugin/info/${PROJECT_NAME}" CACHE STRING "Location users can find help with the plugin" )
+SET( DEVELOPER_TEXT "Sunnybrook Research Institute" CACHE STRING "Name of the author or organization that created the plugin" )
+
+# Load the Sedeen dependencies
+SET(PROGRAMFILESX86 "PROGRAMFILES\(X86\)")
+FIND_PACKAGE( SEDEENSDK REQUIRED 
+  HINTS ../../.. 
+        "$ENV{${PROGRAMFILESX86}}/Sedeen Viewer SDK/v5.4.4.20191024/msvc2017"
+        "$ENV{PROGRAMFILES}/Sedeen Viewer SDK/v5.4.4.20191024/msvc2017" )
+
+#Include the full Poco toolkit
+#SET(POCO_BASE_DIR "POCO_BASE_DIR-NOTFOUND" CACHE PATH "Base directory of the Poco files")
+#IF(${POCO_BASE_DIR} STREQUAL "POCO_BASE_DIR-NOTFOUND")
+#  SET(POCO_INCLUDE_DIR "POCO_INCLUDE_DIR-NOTFOUND")
+#  SET(POCO_STATIC_LIBRARY_DIR "POCO_STATIC_LIBRARY_DIR-NOTFOUND")
+#  SET(POCO_DYNAMIC_LIBRARY_DIR "POCO_DYNAMIC_LIBRARY_DIR-NOTFOUND")
+#ELSE()
+#  SET(POCO_INCLUDE_DIR "${POCO_BASE_DIR}/include" CACHE PATH "Directory containing Poco include files")
+#  SET(POCO_STATIC_LIBRARY_DIR "${POCO_BASE_DIR}/lib" CACHE PATH "Directory containing Poco static libraries (.lib)")
+#  SET(POCO_DYNAMIC_LIBRARY_DIR "${POCO_BASE_DIR}/bin" CACHE PATH "Directory containing Poco dynamicly linked libraries (.dll)")
+#  FILE(GLOB POCO_STATIC_LIBRARIES  "${POCO_STATIC_LIBRARY_DIR}/*.lib")
+#ENDIF()
+
+INCLUDE_DIRECTORIES( ${INCLUDE_DIRECTORIES} ${SEDEENSDK_INCLUDE_DIR} ) #${POCO_INCLUDE_DIR})
+LINK_DIRECTORIES( ${LINK_DIRECTORIES} ${SEDEENSDK_LIBRARY_DIR} ) #${POCO_STATIC_LIBRARY_DIR})
+
+# Build the code into a module library
+ADD_LIBRARY( ${PROJECT_NAME} MODULE 
+             ${PROJECT_NAME}.cpp 
+             ${PROJECT_NAME}.h 
+             ODConversion.h
+             ODThresholdKernel.h ODThresholdKernel.cpp
+             )
+
+# Link the library against the Sedeen SDK libraries
+TARGET_LINK_LIBRARIES( ${PROJECT_NAME} ${SEDEENSDK_LIBRARIES} ) #${POCO_STATIC_LIBRARIES})
+
+#Create or update the .info file in the build directory
+STRING( TIMESTAMP DATE_CREATED_TEXT "%Y-%m-%d" )
+CONFIGURE_FILE( "infoTemplate.info.in" "${PROJECT_NAME}.info" )
+
+# Set the install destination directory
+IF( NOT PLUGIN_DESTINATION_DIR )
+  IF( ${SEDEEN_FOUND} )
+	SET( TEMPPLUGINDIR "${PATHCORE_DIR}/plugins/cpp/piip/${PROJECT_NAME}" )
+  ELSE()
+	SET( TEMPPLUGINDIR "PLUGIN_DESTINATION_DIR-NOTFOUND" )
+	MESSAGE( SEND_ERROR "PLUGIN_DESTINATION_DIR not found. Set this to the target installation directory of the plugin within Sedeen Viewer (e.g. $ENV{PROGRAMFILES}/Sedeen Viewer/plugins/cpp/piip/${PROJECT_NAME}).")
+  ENDIF()
+  SET(PLUGIN_DESTINATION_DIR ${TEMPPLUGINDIR} CACHE PATH "Installation directory for the plugin within Sedeen Viewer")
+ENDIF()
+
+# Install the plugin and .info file in the PLUGIN_DESTINATION_DIR directory
+IF( ${SEDEEN_FOUND} )
+  INSTALL(TARGETS ${PROJECT_NAME} LIBRARY
+    DESTINATION "${PLUGIN_DESTINATION_DIR}")
+  INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.info"
+    DESTINATION "${PLUGIN_DESTINATION_DIR}")
+  #INSTALL(DIRECTORY "${POCO_DYNAMIC_LIBRARY_DIR}/" 
+  #   DESTINATION "${PLUGIN_DESTINATION_DIR}" 
+  #   FILES_MATCHING PATTERN "*.dll" )
+ENDIF()

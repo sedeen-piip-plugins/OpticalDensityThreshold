@@ -1,16 +1,12 @@
 <h1 align="center">Optical Density Threshold</h1>
-A Sedeen plugin that can apply thresholds based on optical density values.
-
-## User Manual
-
-Pending.
+This is the minimal code for a Sedeen plugin. Use CMake to configure the build. Visual Studio or another build system can be used to compile the generated project. Note that the project must be compiled in Release mode to be used as a plugin in a Sedeen Viewer installation. Build the INSTALL target to copy the .dll and .info file to the plugins directory of the Sedeen Viewer.
 
 ## Authors
-Optical Density Threshold was developed by **Michael Schumaker**, of Anne Martel's lab at Sunnybrook Research Institute (SRI), University of Toronto and was partially funded by an NIH grant.
+Optical Density Threshold was developed by **Michael Schumaker**, of Anne Martel's lab at Sunnybrook Research Institute (SRI).
 
 ## Copyright & License
 
-Copyright (c) 2019 Sunnybrook Research Institute
+Copyright (c) 2020 Sunnybrook Research Institute
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
