@@ -56,7 +56,7 @@ public:
         }
     }//end LookupRGBToOD
 
-    ///OD to RGB conversion using a lookup table (imprecise - use carefully)
+    ///OD to RGB conversion using a lookup table (in reverse)
     inline const int LookupODtoRGB(const double &_OD) const {
         //Traverse the vector in reverse, find index at which _OD is smaller than stored value
         for (auto p = m_convLookup.rbegin(); p != m_convLookup.rend(); ++p) {
@@ -73,17 +73,17 @@ public:
         double scaleMax = static_cast<double>(GetRGBMaxValue());
         //Avoid trying to calculate log(0)
         double color = (_color <= 0.0) ? GetODMinValue() : _color;
-        double OD = (color == scaleMax) ? GetODMinValue() : -std::log10(color / scaleMax);
-        //Push negative and 0 values up to small positive value
-        OD = (OD < GetODMinValue()) ? GetODMinValue() : OD;
+        double OD = -std::log10(color / scaleMax);
+        //Push negative values up to 0
+        OD = (OD < 0.0) ? 0.0 : OD;
         return OD;
     }//end ConvertRGBtoOD
 
     ///Convert from optical density to color space (0 to 255 RGB value)
     inline static const double ConvertODtoRGB(const double &_OD) {
         double scaleMax = static_cast<double>(GetRGBMaxValue());
-        //Push negative and 0 values up to small positive value
-        double OD = (_OD < GetODMinValue()) ? GetODMinValue() : _OD;
+        //Push negative values up to 0
+        double OD = (_OD < 0.0) ? 0.0 : _OD;
         double color = std::round(scaleMax * std::pow(10.0, -OD));
         //Valid range is 0 to scaleMax
         color = (color < 0.0) ? 0.0 : color;
