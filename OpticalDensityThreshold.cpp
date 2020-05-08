@@ -153,12 +153,11 @@ void OpticalDensityThreshold::run() {
             auto output_image = compositor->getImage(region.source_region, region.output_size);
 
             // Get image from the input factory
-            auto compositorsource = std::make_unique<image::tile::Compositor>(image()->getFactory());
-            auto input_image = compositorsource->getImage(region.source_region, region.output_size);
+            //auto compositorsource = std::make_unique<image::tile::Compositor>(image()->getFactory());
+            //auto input_image = compositorsource->getImage(region.source_region, region.output_size);
 
             if (m_regionToProcess.isUserDefined()) {
-                //myss << m_regionToProcess.isUserDefined() << std::endl;
-                std::shared_ptr<GraphicItemBase> roi = m_regionToProcess;
+                 std::shared_ptr<GraphicItemBase> roi = m_regionToProcess;
                 auto display_resolution = getDisplayResolution(image(), m_displayArea);
                 Rect rect = containingRect(roi->graphic());
                 output_image = compositor->getImage(rect, region.output_size);
