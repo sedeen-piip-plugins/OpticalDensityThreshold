@@ -47,16 +47,11 @@ public:
 	// Destructor
 	virtual ~OpticalDensityThreshold();
 
-	// Other public methods you would like to include
-
-    
 
 private:
 	//Private methods
 	virtual void init(const image::ImageHandle& image);
     virtual void run();
-    ///Updates which GUI parameters should be displayed/hidden
-    //virtual void update();
 
     /// Creates the thresholding pipeline with a cache
     //
