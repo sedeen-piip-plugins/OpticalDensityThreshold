@@ -57,8 +57,9 @@ OpticalDensityThreshold::OpticalDensityThreshold()
     m_result(),
     m_outputText(),
     m_report(""),
-    m_thresholdDefaultVal(20.0),
-    m_thresholdMaxVal(300.0),
+    m_thresholdDefaultVal(0.20),
+    m_thresholdMaxVal(3.0),
+    m_thresholdStepSizeVal(0.01),
     m_ODThreshold_factory(nullptr)
 {
     //List the options for retainment type
@@ -90,11 +91,12 @@ void OpticalDensityThreshold::init(const image::ImageHandle& image) {
         1, m_retainmentOptions, false);
 
     m_threshold = createDoubleParameter(*this,
-        "OD x100 Threshold",   // Widget label
-        "A Threshold value",   // Widget tooltip
-        20,   // Initial value
-        0.0,  // minimum value
-        300,  // maximum value
+        "OD Threshold",   // Widget label
+        "Optical Density threshold value",   // Widget tooltip
+        m_thresholdDefaultVal, // Initial value
+        0.0,                   // minimum value
+        m_thresholdMaxVal,     // maximum value
+        m_thresholdStepSizeVal,
         false);
 
     m_RWeight = createDoubleParameter(*this,
@@ -210,7 +212,7 @@ bool OpticalDensityThreshold::buildPipeline() {
         std::array<double, 3> theWeights = { m_RWeight, m_GWeight, m_BWeight };
         //Scale down the threshold to create more precision
         auto threshold_kernel =
-            std::make_shared<image::tile::ODThresholdKernel>(m_threshold / 100.0,
+            std::make_shared<image::tile::ODThresholdKernel>(m_threshold,
             behaviorVal, theWeights);
 
         // Create a Factory for the composition of these Kernels
