@@ -89,9 +89,9 @@ private:
     //Member variables
     std::vector<std::string> m_retainmentOptions;
     std::vector<std::string> m_thresholdTypeOptions;
-    double m_thresholdDefaultVal;
-    double m_thresholdMaxVal;
-
+    const double m_thresholdDefaultVal;
+    const double m_thresholdMaxVal;
+    const double m_thresholdStepSizeVal;
 };
 
 } // namespace algorithm
